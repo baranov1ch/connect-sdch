@@ -1,71 +1,47 @@
 var express = require('express');
 var fs = require('fs');
-var sdchConnect = require('connect-sdch');
 var sdch = require('sdch');
+var sdchConnect = require('connect-sdch');
+var url = require('url');
+var zlib = require('zlib');
 
 var app = express();
 
 var dicts = [
   new sdch.SdchDictionary({
-    url: '/dict/kotiki1.dict',
+    url: '/dict/kotiki.dict',
     domain: 'kotiki.cc',
     path: '/',
-    data: 'Hello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello World'
-  }),
-  new sdch.SdchDictionary({
-    url: '/dict/kotiki2.dict',
-    domain: 'kotiki.cc',
-    path: '/somepath',
-    data: fs.readFileSync('examples/kotiki.dict')
+    maxAge: 6000,
+    ports: [80, 443, 3000],
+    data: fs.readFileSync('dict')
   })
 ];
 
 var dictionaryStorage = new sdchConnect.DictionaryStorage(dicts);
 
+app.use(sdchConnect.compress({
+  threshold: 60
+}));
 app.use(sdchConnect.encode({
   threshold: 60,
-  sdchAction: function(req, clientDicts) {
+  toSend: function(req, clientDicts) {
+    return dicts[0];
+  },
+  toEncode: function(req, clientDicts) {
     var dictHash = clientDicts.find(function(e) {
       return dictionaryStorage.getByClientHash(e);
     });
-    var dict = dictionaryStorage.getByClientHash(dictHash);
-    var newDict;
-    if (req.url.indexOf('/somepath') === 0) {
-      newDict = dicts[1];
-    } else {
-      newDict = dicts[0];
-    }
-    console.log('Sending dict: ' + newDict.url);
-    return { newDictionary: newDict.url, dictionary: dict };
+    return dictionaryStorage.getByClientHash(dictHash);
   }
 }));
 app.use(sdchConnect.serve(dictionaryStorage));
 
 app.get('/', function (req, res) {
-  res.send('Hello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello World' +
-           'Hello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello World' +
-           'Hello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello W
-           ]
-          ]orldHello WorldHello WorldHello WorldHello World');
-})
-
-app.get('/somepath', function (req, res) {
-  res.send('Hello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello World' +
-           'Hello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello World' +
-           'Hello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello' +
-           ' WorldHello WorldHello WorldHello WorldHello WorldHello World');
-})
+  res.setHeader('content-type', 'text/html');
+  res.setHeader('cache-control', 'no-store');
+  fs.createReadStream('examples/kotiki.html').pipe(res);
+});
 
 console.log("starting....");
 

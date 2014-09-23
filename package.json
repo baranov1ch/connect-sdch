@@ -2,11 +2,17 @@
   "name": "connect-sdch",
   "description": "SDCH middleware for connect and node.js",
   "version": "0.0.1",
-  "author": "Alexey Baranov <mainkaya.kisa@yandex.ru>",
+  "author": "Alexey Baranov <me@kotiki.cc>",
   "license": "MIT",
+  "keywords": [
+    "open-vcdiff",
+    "vcdiff",
+    "sdch",
+    "compression"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://stash.desktop.dev.yandex.net/scm/nsd/ngx_psp.git/integration_tests"
+    "url": "https://github.com/baranov1ch/connect-sdch"
   },
   "main": "./lib/connect-sdch",
   "dependencies": {
@@ -17,7 +23,7 @@
     "on-headers": "~1.0.0",
     "vary": "~1.0.0",
     "range-parser": "*",
-    "sdch": "*"
+    "sdch": "~0.0.2"
   },
   "devDependencies": {
     "coffee-script": "*",
@@ -25,6 +31,7 @@
     "mocha": "*",
     "express": "*",
     "request": "*",
+    "supertest": "*"
   },
   "scripts": {
     "test": "node_modules/.bin/mocha --compilers coffee:coffee-script/register" 
