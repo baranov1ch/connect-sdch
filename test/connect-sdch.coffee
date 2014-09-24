@@ -31,7 +31,7 @@ describe 'connectSdch', ->
         .expect 'Content-Length', dict.getLength()
         .expect 'Accept-Ranges', 'bytes'
         .expect 'Etag', dict.etag
-        .expect 'Content-Type', 'application/x-sdch-dict', done
+        .expect 'Content-Type', 'application/x-sdch-dictionary', done
 
     it 'should return not modified', (done) ->
       server = createDictServer storage, (req, res) ->
@@ -172,6 +172,28 @@ describe 'connectSdch', ->
         .expect 'Get-Dictionary', dict.url
         .expect 'Content-Encoding', 'sdch', done
 
+    it 'should serve sdch with multiple dicts', (done) ->
+      dict2 = new sdch.SdchDictionary
+        url: '/dict/kotiki2.dict',
+        domain: 'kotiki.cc',
+        data: 'hello worldhello worldhello worldhello worldhello world'
+
+      myOpts =
+        threshold: 0
+        toSend: (r, dicts) -> [dict, dict2]
+        toEncode: (r, dicts) -> dict
+      server = createSimpleSdch myOpts, (req, res) ->
+        res.setHeader 'Content-Type', 'text/plain'
+        res.end 'hello worldhello worldhello worldhello worldhello world' +
+                'hello worldhello worldhello'
+
+      request server
+        .get '/'
+        .set 'Accept-Encoding', 'sdch'
+        .set 'Avail-Dictionary', dict.clientHash
+        .expect 'Get-Dictionary', dict.url + ', ' + dict2.url
+        .expect 'Content-Encoding', 'sdch', done
+
     it 'should not encode head', (done) ->
       server = createSimpleSdch opts, (req, res) ->
         res.setHeader 'Content-Type', 'text/plain'
@@ -228,7 +250,7 @@ describe 'connectSdch', ->
         .set 'Avail-Dictionary', dict.clientHash
         .set 'Accept-Encoding', 'sdch'
         .expect 'Content-Encoding', 'sdch'
-        .expect 'Vary', 'Accept-Encoding'
+        .expect 'Vary', 'Accept-Encoding, Avail-Dictionary'
         .expect 'Get-Dictionary', dict.url, done
 
     it 'should set Vary even if Accept-Encoding is not set', (done) ->
@@ -243,7 +265,7 @@ describe 'connectSdch', ->
 
       request server
         .get '/'
-        .expect 'Vary', 'Accept-Encoding'
+        .expect 'Vary', 'Accept-Encoding, Avail-Dictionary'
         .end (err, res) ->
           if (err)
             return done err
@@ -260,7 +282,7 @@ describe 'connectSdch', ->
         .head '/'
         .set 'Avail-Dictionary', dict.clientHash
         .set 'Accept-Encoding', 'sdch'
-        .expect 'Vary', 'Accept-Encoding', done
+        .expect 'Vary', 'Accept-Encoding, Avail-Dictionary', done
 
     it 'should not set Vary if Content-Type does not pass filter', (done) ->
       server = createSimpleSdch opts, (req, res) ->
@@ -702,7 +724,7 @@ describe 'connectSdch', ->
           .set 'Accept-Encoding', 'sdch'
           .request()
           .on 'response', (res) ->
-            res.headers['content-encoding'].should.equal('sdch')
+            res.headers['content-encoding'].should.equal 'sdch'
             res.on 'data', write
             res.on 'end', ->
               chunks.should.equal 2
@@ -774,6 +796,7 @@ describe 'connectSdch', ->
             resp = res
             res.setHeader 'Content-Type', 'text/plain'
             res.setHeader 'Content-Length', '2048'
+            res.setHeader 'Content-Encoding', 'sdch'
             write()
 
           write = ->
@@ -790,7 +813,7 @@ describe 'connectSdch', ->
             .set 'Accept-Encoding', 'gzip'
             .request()
             .on 'response', (res) ->
-              res.headers['content-encoding'].should.equal('gzip')
+              res.headers['content-encoding'].should.equal 'sdch,gzip'
               res.on 'data', write
               res.on 'end', ->
                 chunks.should.equal 2
