@@ -23,7 +23,7 @@
     "on-headers": "~1.0.0",
     "vary": "~1.0.0",
     "range-parser": "*",
-    "sdch": "~0.0.2"
+    "sdch": ">=0.0.2"
   },
   "devDependencies": {
     "coffee-script": "*",
