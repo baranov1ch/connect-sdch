@@ -268,10 +268,20 @@ describe 'connectSdch', ->
       domain: 'kotiki.cc'
       data: 'hello worldhello worldhello worldhello worldhello world' +
             'hello worldhello worldhello worldhello worldhello world'
+    storage = new connectSdch.DictionaryStorage [dict]
     opts =
       threshold: 0
-      toSend: (r, dicts) -> dict
-      toEncode: (r, dicts) -> dict
+      storage: storage
+
+    it 'should throw if wrong options', ->
+      (-> createSimpleSdch {}, (req, res) ->)
+      .should.throw /provide either storage or/
+
+      (-> createSimpleSdch { toSend: -> }, (req, res) ->)
+      .should.throw /provide either storage or/
+
+      (-> createSimpleSdch { toEncode: -> }, (req, res) ->)
+      .should.throw /provide either storage or/
 
     it 'should serve sdch', (done) ->
       server = createSimpleSdch opts, (req, res) ->
@@ -283,8 +293,18 @@ describe 'connectSdch', ->
         .get '/'
         .set 'Accept-Encoding', 'sdch'
         .set 'Avail-Dictionary', dict.clientHash
-        .expect 'Get-Dictionary', dict.url
         .expect 'Content-Encoding', 'sdch', done
+
+    it 'should set Get-Dictionary if no available', (done) ->
+      server = createSimpleSdch opts, (req, res) ->
+        res.setHeader 'Content-Type', 'text/plain'
+        res.end 'hello worldhello worldhello worldhello worldhello world' +
+                'hello worldhello worldhello'
+
+      request server
+        .get '/'
+        .set 'Accept-Encoding', 'sdch'
+        .expect 'Get-Dictionary', dict.url, done
 
     it 'should serve sdch with multiple dicts', (done) ->
       dict2 = new sdch.SdchDictionary
@@ -377,8 +397,7 @@ describe 'connectSdch', ->
         .set 'Avail-Dictionary', dict.clientHash
         .set 'Accept-Encoding', 'sdch'
         .expect 'Content-Encoding', 'sdch'
-        .expect 'Vary', 'Accept-Encoding, Avail-Dictionary'
-        .expect 'Get-Dictionary', dict.url, done
+        .expect 'Vary', 'Accept-Encoding, Avail-Dictionary', done
 
     it 'should set Vary even if Accept-Encoding is not set', (done) ->
       myOpts =
@@ -975,7 +994,6 @@ describe 'connectSdch', ->
           .set 'Avail-Dictionary', dict.clientHash
           .expect 'Transfer-Encoding', 'chunked'
           .expect 'Content-Encoding', 'sdch,gzip'
-          .expect 'Get-Dictionary', dict.url
           .parse parser
           .end (err, res) ->
             if err
@@ -993,7 +1011,6 @@ describe 'connectSdch', ->
           .set 'Avail-Dictionary', dict.clientHash
           .expect 'Transfer-Encoding', 'chunked'
           .expect 'Content-Encoding', 'sdch,gzip'
-          .expect 'Get-Dictionary', dict.url
           .parse parser
           .end (err, res) ->
             if err
