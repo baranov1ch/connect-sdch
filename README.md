@@ -1,5 +1,7 @@
 # connect-sdch
 
+[![Build Status](https://travis-ci.org/baranov1ch/connect-sdch.svg?branch=master)](https://travis-ci.org/baranov1ch/connect-sdch)
+
 SDCH middleware for connect and node.js
 
 ## Quick example
