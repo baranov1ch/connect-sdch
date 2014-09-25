@@ -1,19 +1,19 @@
 var async = require('async');
 var request = require('superagent');
 var sdch = require('sdch');
+var url = require('url');
 var zlib = require('zlib');
-var request = require('superagent');
 
 function initialRequest(callback) {
-  var testUrl = 'http://localhost:3000'
+  var testUrl = 'http://kotiki.cc:3000'
   request.get(testUrl)
   .set('accept-encoding', 'sdch, gzip')
-  .end(function(err, res) {
+  .end(function(err, response) {
     if (err) {
       callback(err);
       return;
     }
-    var getDict = response['get-dictionary'];
+    var getDict = response.headers['get-dictionary'];
     if (!getDict) {
       callback(new Error('No valid dict URLs found in headers'));
       return;
@@ -36,11 +36,14 @@ function initialRequest(callback) {
 function fetchDictionaries(urls, callback) {
   var fetches = urls.map(function(e) {
     return function(cb) {
-      request.get('http://localhost:3000')
+      request.get(e)
       .set('accept-encoding', 'sdch, gzip')
-      .end(function(e, res) {
+      .buffer()
+      .end(function(ee, res) {
+        if (ee)
+          return cb(ee);
         try {
-          var opts = sdch.createDictionaryOptions(dictUrl, res.body);
+          var opts = sdch.createDictionaryOptions(e, res.text);
           var dict = sdch.clientUtils.createDictionaryFromOptions(opts);
           cb(null, dict);
         } catch (err) {
@@ -59,21 +62,60 @@ function fetchDictionaries(urls, callback) {
 };
 
 function getSdchedResource(dicts, callback) {
-  var urlToGo = 'http://localhost:3000';
+  var urlToGo = 'http://kotiki.cc:3000';
   var avDicts = dicts.filter(function(e) {
     return sdch.clientUtils.canAdvertiseDictionary(e, urlToGo);
-  }).map(function(e) {
+  });
+  if (avDicts.length === 0)
+    return callback(new Error('No valid dicts for the requested URL'));
+
+  var avDictHeader = avDicts.map(function(e) {
     return e.clientHash;
   }).reduce(function(a, b) {
     return a + ', ' + b;
   });
-  if (avDicts.length === 0) {
-    callback(new Error('No valid dicts for the requested URL'));
-  } else {
-    request.get('http://localhost:3000')
-    .set('accept-encoding', 'sdch, gzip')
-    .set('avail-dictionary', avDicts)
-    .end(function(err, res) {
-    });
-  }
+  request.get(urlToGo)
+  .set('accept-encoding', 'sdch, gzip')
+  .set('avail-dictionary', avDictHeader)
+  .request()
+  .on('response', function(res) {
+    var CE = res.headers['content-encoding'];
+    if (!CE)
+      return callback(null, enc.toString());
+
+    CE = CE.split(',').map(function(e) { return e.trim(); });
+    if (CE.length > 2)
+      return callback(new Error('Too much of encodings'));
+    var p = res;
+    if (CE.indexOf('gzip') !== -1) {
+      p = p.pipe(zlib.createGunzip());
+    } else if (CE.indexOf('deflate') !== -1) {
+      p = p.pipe(zlib.creatInflate());
+    }
+    if (CE.indexOf('sdch') !== -1) {
+      p = p.pipe(sdch.createSdchDecoder(
+        avDicts,
+        {
+          url: urlToGo,
+          validationCallback: function(dict, referer) {
+            // Just for example. This is already done by default.
+            return sdch.clientUtils.canUseDictionary(dict, referer);
+          }
+        }));
+    }
+    callback(null, p);
+  })
+  .end();
 };
+
+async.waterfall([
+  initialRequest,
+  fetchDictionaries,
+  getSdchedResource,
+],
+function(err, result) {
+  if (err) {
+    throw err;
+  }
+  result.pipe(process.stdout);
+});
