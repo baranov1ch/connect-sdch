@@ -182,5 +182,7 @@ TODO
 ## TODO
 
   * Serve `cache-control: private`
-  * Make working examples
+  * Maybe gzip dictionaries even if client does not advertise any dicts.
+    Anyway you can put compression middleware in front of the sdch to compress
+    everything not yet compressed:)
 
