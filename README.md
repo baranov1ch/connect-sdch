@@ -45,7 +45,7 @@ var dictionaryStorage = new sdchConnect.DictionaryStorage(dicts);
 // SDCH-encoded content by gzip/deflate. Regular `compression` middleware won't
 // compress anything with `Content-Encoding` set.
 app.use(sdchConnect.compress());
-app.use(sdchConnect.encode({ dictionaries: dictionaryStorage });
+app.use(sdchConnect.encode({ storage: dictionaryStorage });
 app.use(sdchConnect.serve(dictionaryStorage));
 
 app.get('/', function (req, res) {
@@ -118,7 +118,7 @@ will be used to encode the response. Should return `sdch.SdchDictionary` or
 `availableDicts` is an Array of client hashes (parsed `Avail-Dictionary` header).
 
 If you don't provide these functions, be sure to provide
-`connectSdch.DictionaryStorage` via `options.dictionary`.
+`connectSdch.DictionaryStorage` via `options.storage`.
 
 If you don't provise any `encodeOptions`, default as per spec will be used
 for open-vcdiff (interleaved encoding and appending adler32 checksum).
