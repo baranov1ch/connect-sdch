@@ -6,9 +6,14 @@ SDCH middleware for connect and node.js. Refer to [the spec](http://lists.w3.org
 
 Uses [sdch](https://github.com/baranov1ch/node-sdch) module inside.
 
-Keep in mind, that it is to accurate in all aspects. For instance, Chromium
-already supports SDCH-over-HTTPS as it is now considered to not introduce
-additional risks.
+Keep in mind, that it is to accurate in all aspects. For instance:
+
+* Chromium already supports SDCH-over-HTTPS as it is now considered to not
+introduce additional risks.
+
+* Chromium does not support comma separated port list. Use multiple headers.
+
+* Chromium downloads only the first dictionary from `Get_Dictionary` header.
 
 ## Example
 
