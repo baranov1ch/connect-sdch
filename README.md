@@ -81,7 +81,7 @@ Dictionaries are served with `application/x-sdch-dictionary` content-type.
 Both compression middlewares are more or less copy-pasted from
 [expressjs/compression](https://github.com/expressjs/compression) so and generally have similar api and accept
 similar options (`treshold`, `filter`, etc) plus some SDCH-specific stuff.
-The only difference is that encoding options (for [zlib](http://nodejs.org/api/zlib.html) and [sdch](https://github.com/baranov1ch/node-sdch) and inherently [vcdiff](https://github.com/baranov1ch/node-vcdiff)
+The only difference is that encoding options (for [zlib](http://nodejs.org/api/zlib.html) and [sdch](https://github.com/baranov1ch/node-sdch) and inherently [vcdiff](https://github.com/baranov1ch/node-vcdiff))
 are passed via separate argument `encodeOptions`.
 
 #### connectSdch.encode(options, encodeOptions)
