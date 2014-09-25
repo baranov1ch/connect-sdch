@@ -10,13 +10,127 @@ zlib = require 'zlib'
 should = chai.should()
 
 describe 'connectSdch', ->
+  describe 'defaultToSend', ->
+    dicts = [
+      new sdch.SdchDictionary
+        url: '/dict/kotiki.dict'
+        domain: 'kotiki.cc'
+        data: 'hello worldhello worldhello worldhello worldhello world'
+
+      new sdch.SdchDictionary
+        url: '/dict/kotiki1.dict'
+        domain: 'kotiki.cc'
+        path: '/'
+        data: 'hello worldhello worldhello worldhello worldhello world'
+
+      new sdch.SdchDictionary
+        url: '/dict/kotiki2.dict'
+        domain: 'kotiki.cc'
+        path: '/path'
+        data: 'hello worldhello worldhello worldhello worldhello world'
+    ]
+    storage = new connectSdch.DictionaryStorage dicts
+
+    it 'should return missing dicts', ->
+      selector = connectSdch.defaultToSend storage
+      selector(null, []).should.have.length 3
+      res = selector null, [dicts[0].clientHash]
+      res.should.have.length 2
+      res[0].clientHash.should.equal dicts[1].clientHash
+      res[1].clientHash.should.equal dicts[2].clientHash
+      res = selector null, [dicts[0].clientHash, dicts[1].clientHash]
+      res.should.have.length 1
+      res[0].clientHash.should.equal dicts[2].clientHash
+
+  describe 'defaultToEncode', ->
+    it 'should return null if no suitable dictionary', ->
+      dict = new sdch.SdchDictionary
+        url: '/dict/kotiki.dict'
+        domain: 'kotiki.cc'
+        data: 'hello worldhello worldhello worldhello worldhello world'
+      storage = new connectSdch.DictionaryStorage [dict]
+      selector = connectSdch.defaultToEncode storage
+      should.not.exist selector null, ['notexists']
+
+    it 'should rank path-specified dicts above non-path', ->
+      dicts = [
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki2'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+      ]
+      storage = new connectSdch.DictionaryStorage dicts
+      selector = connectSdch.defaultToEncode storage
+      res = selector { url: '/kotiki/123' }, dicts.map (e) -> e.clientHash
+      res.clientHash.should.equal dicts[1].clientHash
+
+    it 'should rank path-specified dicts above non-path if met first', ->
+      dicts = [
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki2'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+      ]
+      storage = new connectSdch.DictionaryStorage dicts
+      selector = connectSdch.defaultToEncode storage
+      res = selector { url: '/kotiki/123' }, dicts.map (e) -> e.clientHash
+      res.clientHash.should.equal dicts[0].clientHash
+
+    it 'should rank longest path matches first', ->
+      dicts = [
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki2'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki/123'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+        new sdch.SdchDictionary
+          url: '/dict/kotiki.dict'
+          path: '/kotiki/123/54'
+          domain: 'kotiki.cc'
+          data: 'hello worldhello worldhello worldhello worldhello world'
+      ]
+      storage = new connectSdch.DictionaryStorage dicts
+      selector = connectSdch.defaultToEncode storage
+      res = selector { url: '/kotiki/123/54/3' }, dicts.map (e) -> e.clientHash
+      res.clientHash.should.equal dicts[3].clientHash
+
   describe 'serving dicts', ->
     dict = new sdch.SdchDictionary
-      url: '/dict/kotiki.dict',
-      domain: 'kotiki.cc',
-      path: '/',
-      maxAge: 6000,
-      ports: [80, 443, 3000],
+      url: '/dict/kotiki.dict'
+      domain: 'kotiki.cc'
+      path: '/'
+      maxAge: 6000
+      ports: [80, 443, 3000]
       data: 'hello worldhello worldhello worldhello worldhello world' +
             'hello worldhello worldhello worldhello worldhello world'
     storage = new connectSdch.DictionaryStorage [dict]
@@ -150,8 +264,8 @@ describe 'connectSdch', ->
 
   describe 'sdchConnect.encode', ->
     dict = new sdch.SdchDictionary
-      url: '/dict/kotiki.dict',
-      domain: 'kotiki.cc',
+      url: '/dict/kotiki.dict'
+      domain: 'kotiki.cc'
       data: 'hello worldhello worldhello worldhello worldhello world' +
             'hello worldhello worldhello worldhello worldhello world'
     opts =
@@ -174,8 +288,8 @@ describe 'connectSdch', ->
 
     it 'should serve sdch with multiple dicts', (done) ->
       dict2 = new sdch.SdchDictionary
-        url: '/dict/kotiki2.dict',
-        domain: 'kotiki.cc',
+        url: '/dict/kotiki2.dict'
+        domain: 'kotiki.cc'
         data: 'hello worldhello worldhello worldhello worldhello world'
 
       myOpts =
@@ -192,6 +306,19 @@ describe 'connectSdch', ->
         .set 'Accept-Encoding', 'sdch'
         .set 'Avail-Dictionary', dict.clientHash
         .expect 'Get-Dictionary', dict.url + ', ' + dict2.url
+        .expect 'Content-Encoding', 'sdch', done
+
+    xit 'should serve with private Cache-Control', (done) ->
+      server = createSimpleSdch opts, (req, res) ->
+        res.setHeader 'Content-Type', 'text/plain'
+        res.end 'hello worldhello worldhello worldhello worldhello world' +
+                'hello worldhello worldhello'
+
+      request server
+        .get '/'
+        .set 'Accept-Encoding', 'sdch'
+        .set 'Avail-Dictionary', dict.clientHash
+        .expect 'Cache-Control', 'private'
         .expect 'Content-Encoding', 'sdch', done
 
     it 'should not encode head', (done) ->

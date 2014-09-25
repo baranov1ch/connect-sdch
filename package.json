@@ -29,8 +29,6 @@
     "coffee-script": "*",
     "chai": "*",
     "mocha": "*",
-    "express": "*",
-    "request": "*",
     "supertest": "*"
   },
   "scripts": {
