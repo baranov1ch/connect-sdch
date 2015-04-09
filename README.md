@@ -36,7 +36,7 @@ var dicts = [
     path: '/somespecificpath',
     domain: 'kotiki.cc',
     data: fs.readFileSync('dict')
-  }),
+  })
 ];
 var dictionaryStorage = new sdchConnect.DictionaryStorage(dicts);
 
